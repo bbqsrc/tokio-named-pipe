@@ -1,5 +1,6 @@
 #![cfg(windows)]
 
+pub mod secattr;
 mod stream;
 pub use stream::NamedPipeStream;
 
@@ -10,7 +11,6 @@ use std::task::{Context, Poll};
 
 use futures::Stream;
 use tokio::future::poll_fn;
-use winapi::um::minwinbase::SECURITY_ATTRIBUTES;
 
 macro_rules! ready {
     ($e:expr $(,)?) => {
@@ -21,38 +21,36 @@ macro_rules! ready {
     };
 }
 
-#[derive(Debug)]
-pub struct NamedPipeListener {
+pub struct NamedPipeListener<'a> {
     path: PathBuf,
-    config: NamedPipeConfig,
+    config: NamedPipeConfig<'a>,
     io: tokio::io::PollEvented<mio_named_pipes::NamedPipe>,
 }
 
-#[derive(Debug, Clone)]
-pub struct NamedPipeConfig {
-    inbound: bool,
-    outbound: bool,
-    out_buffer_size: u32,
-    in_buffer_size: u32,
-    security_attributes: *mut SECURITY_ATTRIBUTES,
+pub struct NamedPipeConfig<'s> {
+    pub inbound: bool,
+    pub outbound: bool,
+    pub out_buffer_size: u32,
+    pub in_buffer_size: u32,
+    pub security_attributes: secattr::SecurityAttributes<'s>,
 }
 
-impl Default for NamedPipeConfig {
+impl<'s> Default for NamedPipeConfig<'s> {
     fn default() -> Self {
         NamedPipeConfig {
             inbound: true,
             outbound: true,
             out_buffer_size: 0x10000,
             in_buffer_size: 0x10000,
-            security_attributes: std::ptr::null_mut(),
+            security_attributes: Default::default(),
         }
     }
 }
 
-impl NamedPipeListener {
+impl<'s> NamedPipeListener<'s> {
     fn new_raw(
         path: &std::path::Path,
-        config: &NamedPipeConfig,
+        config: &mut NamedPipeConfig,
         is_first: bool,
     ) -> std::io::Result<mio_named_pipes::NamedPipe> {
         // mio-named-pipe doesn't allow configuration, as described in its documentation,
@@ -64,7 +62,7 @@ impl NamedPipeListener {
                 .outbound(config.outbound)
                 .out_buffer_size(config.out_buffer_size)
                 .in_buffer_size(config.in_buffer_size)
-                .with_security_attributes(config.security_attributes)?
+                .with_security_attributes(&mut config.security_attributes as *mut _ as *mut _)?
                 .into_raw_handle()
         };
 
@@ -74,10 +72,10 @@ impl NamedPipeListener {
 
     pub fn bind<P: AsRef<std::path::Path>>(
         path: P,
-        config: Option<NamedPipeConfig>,
+        config: Option<NamedPipeConfig<'s>>,
     ) -> std::io::Result<NamedPipeListener> {
-        let config = config.unwrap_or_default();
-        let raw = Self::new_raw(&path.as_ref(), &config, true)?;
+        let mut config = config.unwrap_or_default();
+        let raw = Self::new_raw(&path.as_ref(), &mut config, true)?;
         Ok(NamedPipeListener {
             path: path.as_ref().to_path_buf(),
             config,
@@ -96,14 +94,11 @@ impl NamedPipeListener {
         match self.io.get_ref().connect() {
             Ok(()) => {
                 log::trace!("Incoming connection polled successfully");
-                
-                let raw = Self::new_raw(&self.path, &self.config, false)?;
+
+                let raw = Self::new_raw(&self.path, &mut self.config, false)?;
                 let raw = tokio::io::PollEvented::new(raw)?;
 
-                let new_stream = NamedPipeStream(std::mem::replace(
-                    &mut self.io,
-                    raw,
-                ));
+                let new_stream = NamedPipeStream(std::mem::replace(&mut self.io, raw));
 
                 Poll::Ready(Ok((new_stream, self.path.to_path_buf())))
             }
@@ -111,24 +106,22 @@ impl NamedPipeListener {
                 self.io.clear_write_ready(cx)?;
                 Poll::Pending
             }
-            Err(e) => {
-                Poll::Ready(Err(e))
-            }
+            Err(e) => Poll::Ready(Err(e)),
         }
     }
 
-    pub fn incoming<'a>(&'a mut self) -> Incoming<'a> {
+    pub fn incoming<'a>(&'a mut self) -> Incoming<'a, 's> {
         Incoming::new(self)
     }
 }
 
 /// Stream of incoming connections
-pub struct Incoming<'a> {
-    inner: &'a mut NamedPipeListener,
+pub struct Incoming<'a, 's> {
+    inner: &'a mut NamedPipeListener<'s>,
 }
 
-impl Incoming<'_> {
-    pub(crate) fn new(listener: &mut NamedPipeListener) -> Incoming<'_> {
+impl<'a, 's> Incoming<'a, 's> {
+    pub(crate) fn new(listener: &'a mut NamedPipeListener<'s>) -> Incoming<'a, 's> {
         Incoming { inner: listener }
     }
 
@@ -147,9 +140,9 @@ impl Incoming<'_> {
     }
 }
 
-impl<'a> Stream for Incoming<'a> {
+impl<'a, 's> Stream for Incoming<'a, 's> {
     type Item = tokio::io::Result<NamedPipeStream>;
-    
+
     fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         let (socket, _) = ready!(self.inner.poll_accept(cx))?;
         Poll::Ready(Some(Ok(socket)))

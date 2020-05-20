@@ -369,7 +369,7 @@ checksum = "f5e374eff525ce1c5b7687c4cef63943e7686524a387933ad27ca7ec43779cb3"
 dependencies = [
  "log",
  "mio",
- "miow 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "miow 0.3.3 (git+https://github.com/bbqsrc/miow?branch=patch/error-no-data)",
  "winapi 0.3.8",
 ]
 
@@ -388,6 +388,7 @@ dependencies = [
 [[package]]
 name = "miow"
 version = "0.3.3"
+source = "git+https://github.com/bbqsrc/miow?branch=patch/error-no-data#8ea4e0bb52c31d4c127fc0f4109e0ab547113c48"
 dependencies = [
  "socket2",
  "winapi 0.3.8",
@@ -396,8 +397,6 @@ dependencies = [
 [[package]]
 name = "miow"
 version = "0.3.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "396aa0f2003d7df8395cb93e09871561ccc3e785f0acb369170e8cc74ddf9226"
 dependencies = [
  "socket2",
  "winapi 0.3.8",

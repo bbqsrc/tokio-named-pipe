@@ -46,5 +46,4 @@ impl AsyncWrite for NamedPipeStream {
 }
 
 #[cfg(feature = "tonic")]
-impl tonic::transport::server::Connected for NamedPipeStream {
-}
+impl tonic::transport::server::Connected for NamedPipeStream {}

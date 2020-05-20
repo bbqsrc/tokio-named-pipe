@@ -6,7 +6,7 @@ edition = "2018"
 
 [dependencies]
 futures = "0.3.5"
-miow = { path = "../miow" } # "0.3.3"
+miow = "*"
 log = "0.4.8"
 mio-named-pipes = "0.1.6"
 tokio = { version = "0.2.21", features = ["io-driver", "io-util"] }

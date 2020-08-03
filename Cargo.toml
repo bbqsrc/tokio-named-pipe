@@ -6,17 +6,14 @@ edition = "2018"
 
 [dependencies]
 futures = "0.3.5"
-miow = "0.3.3"
-log = "0.4.8"
-mio-named-pipes = "0.1.6"
-tokio = { version = "0.2.21", features = ["io-driver", "io-util"] }
-winapi = { version = "0.3.8", features = ["securitybaseapi", "sddl", "accctrl", "aclapi"] }
+miow = "0.3.5"
+log = "0.4.11"
+mio-named-pipes = "0.1.7"
+tokio = { version = "0.2.22", features = ["io-driver", "io-util"] }
+winapi = { version = "0.3.9", features = ["securitybaseapi", "sddl", "accctrl", "aclapi"] }
 
 # Adds support for Connected trait
-tonic = { version = "0.2.1", optional = true }
+tonic = { version = "0.3.0", optional = true }
 
 [features]
 default = []
-
-[patch.crates-io]
-miow = { git = "https://github.com/bbqsrc/miow", branch = "patch/error-no-data" }

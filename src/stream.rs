@@ -1,10 +1,17 @@
 use std::mem::MaybeUninit;
+use std::os::windows::io::AsRawHandle;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 use tokio::io::{AsyncRead, AsyncWrite};
 
 #[repr(transparent)]
 pub struct NamedPipeStream(pub(crate) tokio::io::PollEvented<mio_named_pipes::NamedPipe>);
+
+impl AsRawHandle for NamedPipeStream {
+    fn as_raw_handle(&self) -> std::os::windows::prelude::RawHandle {
+        self.0.get_ref().as_raw_handle()
+    }
+}
 
 impl AsyncRead for NamedPipeStream {
     unsafe fn prepare_uninitialized_buffer(&self, buf: &mut [MaybeUninit<u8>]) -> bool {

@@ -1,19 +1,17 @@
 [package]
 name = "tokio-named-pipe"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Brendan Molloy <brendan@bbqsrc.net>"]
 edition = "2018"
 
 [dependencies]
 futures = "0.3.5"
-miow = "0.3.5"
 log = "0.4.11"
-mio-named-pipes = "0.1.7"
-tokio = { version = "0.2.22", features = ["io-driver", "io-util"] }
+tokio = { version = "1.17", features = ["net"] }
 winapi = { version = "0.3.9", features = ["securitybaseapi", "sddl", "accctrl", "aclapi"] }
 
-# Adds support for Connected trait
-tonic = { version = "0.3.0", optional = true }
+[dev-dependencies] 
+tokio = { version = "1.17", features = ["macros", "rt-multi-thread", "io-util"] }
 
 [features]
 default = []

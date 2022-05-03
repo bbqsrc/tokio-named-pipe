@@ -1,4 +1,4 @@
-use std::{ptr::addr_of, ffi::c_void};
+use std::ffi::c_void;
 
 use winapi::{
     shared::{
@@ -25,24 +25,22 @@ use winapi::{
     },
 };
 
-#[repr(C)]
+#[repr(transparent)]
 pub struct SecurityAttributes {
     pub(crate) attrs: SECURITY_ATTRIBUTES,
-    pub(crate) desc: Option<SecurityDescriptor>,
 }
 
 impl SecurityAttributes {
     pub fn new(
-        security_descriptor: SecurityDescriptor,
+        security_descriptor: &mut SecurityDescriptor,
         inherit_handle: bool,
     ) -> SecurityAttributes {
         SecurityAttributes {
             attrs: SECURITY_ATTRIBUTES {
                 nLength: std::mem::size_of::<SECURITY_ATTRIBUTES>() as u32,
-                lpSecurityDescriptor: addr_of!(security_descriptor.0) as *mut c_void,
+                lpSecurityDescriptor: security_descriptor as *mut _ as *mut _,
                 bInheritHandle: inherit_handle as BOOL,
             },
-            desc: Some(security_descriptor),
         }
     }
 }
@@ -55,7 +53,6 @@ impl Default for SecurityAttributes {
                 lpSecurityDescriptor: std::ptr::null_mut(),
                 bInheritHandle: false as BOOL,
             },
-            desc: None
         }
     }
 }

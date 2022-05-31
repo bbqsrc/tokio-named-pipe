@@ -4,7 +4,10 @@ use tokio_named_pipe::NamedPipeServerListener;
 
 #[tokio::main]
 async fn main() {
-    let pipe = NamedPipeServerListener::bind("//./pipe/test-pipe".into(), Default::default()).unwrap();
+    let mut descriptor = tokio_named_pipe::secattr::SecurityDescriptor::world().unwrap();
+    let mut config = tokio_named_pipe::config::NamedPipeConfig::default();
+    config.security_attributes = tokio_named_pipe::secattr::SecurityAttributes::new(&mut descriptor, false);
+    let pipe = NamedPipeServerListener::bind("//./pipe/test-pipe".into(), config).unwrap();
 
     pin_mut!(pipe);
 
